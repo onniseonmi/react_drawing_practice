@@ -16,6 +16,8 @@ function App() {
     // canvas의 사이즈를 조작해줘야 작동을 함(왜 두가지 방법을 쓰는지 모르겠음)
 
     const canvas = canvasRef.current;
+    console.log('canvas');
+    console.log(canvas);
     canvas.width = 700;
     canvas.height = 700;
     canvas.style.width = `${700}px`;
@@ -23,14 +25,28 @@ function App() {
 
     // get context of the canvas 픽셀들을 컨트롤 하는 것임
     const context = canvas.getContext('2d');
+    // context.fillRect(25, 25, 100, 100);
+    // context.clearRect(40, 40, 70, 70);
+    // context.strokeRect(50, 50, 50, 50);
+
+    context.beginPath();
+    context.arc(75, 75, 50, 0, Math.PI * 2, false);
+
+    context.moveTo(110, 75);
+    context.arc(75, 75, 35, 0, Math.PI, false);
+
+    context.moveTo(65, 65);
+    context.arc(60, 65, 5, 0, Math.PI * 2, true);
+
+    context.moveTo(95, 65);
+    context.arc(90, 65, 5, 0, Math.PI * 2, true);
+    context.stroke();
 
     // context.scale(2, 2);
-    context.lineCap = 'round';
-    context.strokeStyle = color;
-    context.lineWidth = range;
+    // context.lineCap = 'round';
+    // context.strokeStyle = color;
+    // context.lineWidth = range;
     contextRef.current = context;
-    console.log('context.strokeStyle');
-    console.log(context.strokeStyle);
   }, [color, range]);
   const { editor, onReady } = useFabricJSEditor();
   console.log('editor');
@@ -45,7 +61,9 @@ function App() {
     editor?.addRectangle();
   };
 
-  const onMouseUp = () => {
+  const onMouseUp = (e) => {
+    console.log('mouseUP');
+    console.log(e.nativeEvent);
     contextRef.current.closePath();
     setIsDrawing(false);
   };
