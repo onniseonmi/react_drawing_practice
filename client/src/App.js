@@ -1,6 +1,5 @@
 import './App.css';
 import React, { useRef, useEffect, useState } from 'react';
-import { FabricJSCanvas, useFabricJSEditor } from 'fabricjs-react';
 
 // npm install --save fabricjs-react fabric react react-dom
 function App() {
@@ -29,44 +28,64 @@ function App() {
     // context.clearRect(40, 40, 70, 70);
     // context.strokeRect(50, 50, 50, 50);
 
-    context.beginPath();
-    context.arc(75, 75, 50, 0, Math.PI * 2, false);
-
-    context.moveTo(110, 75);
-    context.arc(75, 75, 35, 0, Math.PI, false);
-
-    context.moveTo(65, 65);
-    context.arc(60, 65, 5, 0, Math.PI * 2, true);
-
-    context.moveTo(95, 65);
-    context.arc(90, 65, 5, 0, Math.PI * 2, true);
-    context.stroke();
-
     // context.scale(2, 2);
-    // context.lineCap = 'round';
-    // context.strokeStyle = color;
-    // context.lineWidth = range;
+    context.lineCap = 'round';
+    context.strokeStyle = color;
+    context.lineWidth = range;
     contextRef.current = context;
   }, [color, range]);
-  const { editor, onReady } = useFabricJSEditor();
-  console.log('editor');
-  console.log(editor);
+
   console.log(canvasRef);
   console.log(contextRef);
 
   const onAddCircle = () => {
-    editor?.addCircle();
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+    contextRef.current = context;
+
+    // 간단하지만 확대·축소 비율을 적용한 사각형 그리기
+    for (var i = 0; i < 3; i++) {
+      for (var j = 0; j < 3; j++) {
+        context.save();
+        context.fillStyle = 'rgb(' + 51 * i + ', ' + (255 - 51 * i) + ', 255)';
+        context.translate(10 + j * 50, 10 + i * 50);
+        context.fillRect(0, 0, 25, 25);
+        context.restore();
+      }
+    }
   };
   const onAddRectangle = () => {
-    editor?.addRectangle();
-  };
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+    contextRef.current = context;
 
-  const onMouseUp = (e) => {
-    console.log('mouseUP');
-    console.log(e.nativeEvent);
-    contextRef.current.closePath();
-    setIsDrawing(false);
+    // 간단하지만 확대·축소 비율을 적용한 사각형 그리기
+    context.save();
+    // blue rect
+    context.fillStyle = '#0095DD';
+    context.fillRect(30, 30, 100, 100);
+    context.rotate((Math.PI / 180) * 25);
+    // grey rect
+    context.fillStyle = '#4D4E53';
+    context.fillRect(30, 30, 100, 100);
+    context.restore();
+
+    // right rectangles, rotate from rectangle center
+    // draw blue rect
+    context.fillStyle = '#0095DD';
+    context.fillRect(150, 30, 100, 100);
+
+    context.translate(200, 80); // translate to rectangle center
+    // x = x + 0.5 * width
+    // y = y + 0.5 * height
+    context.rotate((Math.PI / 180) * 25); // rotate
+    context.translate(-200, -80); // translate back
+
+    // draw grey rect
+    context.fillStyle = '#4D4E53';
+    context.fillRect(150, 30, 100, 100);
   };
+  // start
   const onMouseDown = ({ nativeEvent }) => {
     const { offsetX, offsetY } = nativeEvent;
     // starting point
@@ -74,23 +93,37 @@ function App() {
     contextRef.current.moveTo(offsetX, offsetY);
     setIsDrawing(true);
   };
+  //draw
   const onMouseMove = ({ nativeEvent }) => {
     if (isDrawing) {
       const { offsetX, offsetY } = nativeEvent;
+      contextRef.current.lineCap = 'round';
+      contextRef.current.lineJoin = 'round';
+      contextRef.current.strokeStyle = color;
       contextRef.current.lineTo(offsetX, offsetY);
       contextRef.current.stroke();
-      setIsDrawing(true);
+      // contextRef.current.translate(offsetX, offsetY);
+      // setIsDrawing(true);
     }
   };
+  //stop
+  const onMouseUp = (e) => {
+    console.log('mouseUP');
+    console.log(e.nativeEvent);
+    contextRef.current.stroke();
+    contextRef.current.closePath();
+    setIsDrawing(false);
+  };
+
   const changeColor = (e) => {
-    e.preventDefault();
-    if (isDrawing) {
-      const color = e.target.style.backgroundColor;
-      setColors(color);
-    }
+    console.log('backgroundcolor');
+    console.log(e.target.style);
+    const color = e.target.style.backgroundColor;
+    setColors(color);
   };
   const handleChangeRange = (e) => {
     e.preventDefault();
+    console.log('e.target.value');
     console.log(e.target.value);
     const range = e.target.value;
     setRange(range);
@@ -102,12 +135,6 @@ function App() {
     <div className='App'>
       <h1>Drawing App</h1>
 
-      {/* <FabricJSCanvas
-        onMouseMove={onMouseMove}
-        className='canvas'
-        onReady={onReady}
-        ref={canvasRef}
-      /> */}
       {/* canvas 는 픽셀을 다루는 능력이 있음 */}
       <canvas
         className='canvas'
@@ -115,7 +142,7 @@ function App() {
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
         onMouseDown={onMouseDown}
-        isDrawing={isDrawing}
+        // isDrawing={isDrawing}
       />
 
       <div className='controls'>
