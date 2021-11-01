@@ -58,3 +58,8 @@ body {
 .controls_range {
   margin-bottom: 30px;
 }
+.control_picker {
+  align-self: center;
+  height: 50px;
+  cursor: pointer;
+}

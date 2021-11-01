@@ -1,136 +1,167 @@
 import './App.css';
 import React, { useRef, useEffect, useState } from 'react';
-
 // npm install --save fabricjs-react fabric react react-dom
 function App() {
+  const CANVAS_SIZE = 700;
+  const START_COLOR = 'white';
   const canvasRef = useRef(null);
   const contextRef = useRef(null);
   const colorRef = useRef(null);
+  const [currentX, setCurrentX] = useState(CANVAS_SIZE / 2);
+  const [currentY, setCurrentY] = useState(CANVAS_SIZE / 2);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [rotationValue, setRotationValue] = useState(1);
   const [color, setColors] = useState('#2c2c2c');
+  const [brush, setBrush] = useState('control_color');
+  const [image, setImage] = useState(null);
+  const [draggable, setDraggable] = useState(false);
   const [range, setRange] = useState(2.5);
   const [filling, setFilling] = useState(false);
 
+  // HTMLImageElement(canvas) 객체에 접근하거나 drawImage()를 호출하는 등의 작업이 이미지가 로드된 이후에 이뤄지는 것을
+  //  보장하도록 이미지 관련 작업을 onload 이벤트에 바인딩하는 것이 중요
+  useEffect(() => {
+    const imgUrl = new Image();
+    imgUrl.src = 'https://thiscatdoesnotexist.com/';
+    imgUrl.onload = () => {
+      setImage(imgUrl);
+    };
+  }, []);
+
   useEffect(() => {
     // canvas의 사이즈를 조작해줘야 작동을 함(왜 두가지 방법을 쓰는지 모르겠음)
-
+    if (!canvasRef) return;
     const canvas = canvasRef.current;
     console.log('canvas');
     console.log(canvas);
-    canvas.width = 700;
-    canvas.height = 700;
-    canvas.style.width = `${700}px`;
-    canvas.style.height = `${700}px`;
-
+    canvas.width = CANVAS_SIZE;
+    canvas.height = CANVAS_SIZE;
+    canvas.style.width = `${CANVAS_SIZE}px`;
+    canvas.style.height = `${CANVAS_SIZE}px`;
+    const context = canvas.getContext('2d');
+    contextRef.current = context;
     // get context of the canvas 픽셀들을 컨트롤 하는 것임
-    const context = canvas.getContext('2d');
-    // context.fillRect(25, 25, 100, 100);
-    // context.clearRect(40, 40, 70, 70);
-    // context.strokeRect(50, 50, 50, 50);
-
-    // context.scale(2, 2);
-    context.lineCap = 'round';
-    context.strokeStyle = color;
-    context.lineWidth = range;
-    contextRef.current = context;
-  }, [color, range]);
-
-  console.log(canvasRef);
-  console.log(contextRef);
-
-  const onAddCircle = () => {
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
-    contextRef.current = context;
-
-    // 간단하지만 확대·축소 비율을 적용한 사각형 그리기
-    for (var i = 0; i < 3; i++) {
-      for (var j = 0; j < 3; j++) {
-        context.save();
-        context.fillStyle = 'rgb(' + 51 * i + ', ' + (255 - 51 * i) + ', 255)';
-        context.translate(10 + j * 50, 10 + i * 50);
-        context.fillRect(0, 0, 25, 25);
-        context.restore();
-      }
+    // const context = canvasRef.current.getContext('2d');
+    if (image && canvas) {
+      contextRef.current.save();
+      contextRef.current.fillStyle = 'black';
+      contextRef.current.fillRect(0, 0, 700, 700);
+      contextRef.current.drawImage(
+        image,
+        currentX - image.width / 2,
+        currentY - image.height / 2
+      );
     }
+    // context.scale(2, 2); // 고해상도를 위해 캔버스의 크기를 2배로 설정을 해놓는 것임
+    // context.lineCap = 'round';
+  }, [currentY, currentX, image]);
+
+  const onClear = () => {
+    contextRef.current.fillStyle = START_COLOR;
+    contextRef.current.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
   };
-  const onAddRectangle = () => {
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
-    contextRef.current = context;
-
-    // 간단하지만 확대·축소 비율을 적용한 사각형 그리기
-    context.save();
-    // blue rect
-    context.fillStyle = '#0095DD';
-    context.fillRect(30, 30, 100, 100);
-    context.rotate((Math.PI / 180) * 25);
-    // grey rect
-    context.fillStyle = '#4D4E53';
-    context.fillRect(30, 30, 100, 100);
-    context.restore();
-
-    // right rectangles, rotate from rectangle center
-    // draw blue rect
-    context.fillStyle = '#0095DD';
-    context.fillRect(150, 30, 100, 100);
-
-    context.translate(200, 80); // translate to rectangle center
-    // x = x + 0.5 * width
-    // y = y + 0.5 * height
-    context.rotate((Math.PI / 180) * 25); // rotate
-    context.translate(-200, -80); // translate back
-
-    // draw grey rect
-    context.fillStyle = '#4D4E53';
-    context.fillRect(150, 30, 100, 100);
+  const onUndo = () => {
+    console.log('cancel');
   };
   // start
   const onMouseDown = ({ nativeEvent }) => {
     const { offsetX, offsetY } = nativeEvent;
-    // starting point
-    contextRef.current.beginPath();
-    contextRef.current.moveTo(offsetX, offsetY);
-    setIsDrawing(true);
+    if (brush === 'control_color') {
+      // starting point
+      contextRef.current.beginPath();
+      contextRef.current.moveTo(offsetX, offsetY);
+      setIsDrawing(true);
+    } else if (
+      brush === 'image_mode' &&
+      offsetX <= currentX + image.width / 2 &&
+      offsetX >= currentX - image.width / 2 &&
+      offsetY <= currentY + image.height / 2 &&
+      offsetY >= currentY - image.height / 2
+    ) {
+      console.log('도대체 어디야??');
+      console.log(brush);
+      setDraggable(true);
+    }
   };
-  //draw
+  //draw 이동
   const onMouseMove = ({ nativeEvent }) => {
-    if (isDrawing) {
-      const { offsetX, offsetY } = nativeEvent;
+    const { offsetX, offsetY } = nativeEvent;
+    if (!isDrawing && !draggable) {
+      return;
+    } else if (brush === 'control_color') {
       contextRef.current.lineCap = 'round';
       contextRef.current.lineJoin = 'round';
-      contextRef.current.strokeStyle = color;
+      contextRef.current.lineWidth = range;
       contextRef.current.lineTo(offsetX, offsetY);
       contextRef.current.stroke();
-      // contextRef.current.translate(offsetX, offsetY);
-      // setIsDrawing(true);
+      setDraggable(false);
+    } else if (brush === 'image_mode' && draggable) {
+      setCurrentX(offsetX);
+      setCurrentY(offsetY);
+    } else if (brush === 'control_picker') {
+      setDraggable(false);
     }
   };
   //stop
-  const onMouseUp = (e) => {
-    console.log('mouseUP');
-    console.log(e.nativeEvent);
+  const onStop = (e) => {
+    // console.log('mouseUP');
+    // console.log(e.nativeEvent);
     contextRef.current.stroke();
     contextRef.current.closePath();
+
     setIsDrawing(false);
+    setDraggable(false);
   };
 
+  //색깔바꾸기
   const changeColor = (e) => {
-    console.log('backgroundcolor');
-    console.log(e.target.style);
     const color = e.target.style.backgroundColor;
+    const brush = e.target.className;
+    contextRef.current.strokeStyle = color;
+    contextRef.current.fillStyle = color;
+    setColors(color);
+    setBrush(brush);
+  };
+  const changColorPicker = (e) => {
+    const color = e.target.value;
+    contextRef.current.fillStyle = color;
     setColors(color);
   };
+  //선굵기 바꾸기
   const handleChangeRange = (e) => {
     e.preventDefault();
-    console.log('e.target.value');
-    console.log(e.target.value);
     const range = e.target.value;
     setRange(range);
   };
   const handleMode = () => {
     filling ? setFilling(false) : setFilling(true);
   };
+  //배경화면 바꾸기
+  const handleChangebackground = () => {
+    if (filling) {
+      contextRef.current.fillRect(0, 0, 700, 700);
+    }
+  };
+  const toRadian = (rotationValue) => {
+    return (rotationValue * Math.PI) / 180;
+  };
+  const onDrawImg = () => {
+    if (image) {
+      contextRef.current.save();
+      contextRef.current.fillStyle = 'black';
+      contextRef.current.fillRect(0, 0, 700, 700);
+      contextRef.current.drawImage(
+        image,
+        currentX - image.width / 2,
+        currentY - image.height / 2
+      );
+      contextRef.current.rotate(toRadian(rotationValue));
+      contextRef.current.restore();
+      setRotationValue(rotationValue + 1);
+      setBrush('image_mode');
+    }
+  };
+
   return (
     <div className='App'>
       <h1>Drawing App</h1>
@@ -140,11 +171,13 @@ function App() {
         className='canvas'
         ref={canvasRef}
         onMouseMove={onMouseMove}
-        onMouseUp={onMouseUp}
+        onMouseUp={onStop}
+        onMouseOut={onStop}
         onMouseDown={onMouseDown}
-        // isDrawing={isDrawing}
+        isDrawing={isDrawing}
+        onClick={handleChangebackground}
       />
-
+      <img src='../public/logo192.png' alt='' />
       <div className='controls'>
         <div className='controls_range'>
           <input
@@ -152,13 +185,17 @@ function App() {
             className='control_range'
             max='5.0'
             min='0.1'
-            defaultValue='2.5'
+            defaultValue={range}
             step='0.1'
             onChange={handleChangeRange}
           />
         </div>
         <div className='controls_buttons'>
-          {filling ? (
+          <button onClick={onUndo} className='change_mode'>
+            Undo
+          </button>
+
+          {!filling ? (
             <button className='change_mode' onClick={handleMode}>
               Fill
             </button>
@@ -167,70 +204,71 @@ function App() {
               Paint
             </button>
           )}
-
+          <button
+            onClick={onDrawImg}
+            isDrawing={isDrawing}
+            className='image_mode'
+          >
+            Image
+          </button>
+          <button onClick={onClear} className='change_mode'>
+            Clear
+          </button>
           <button className='save'>Save</button>
-          <button onClick={onAddCircle} className='change_mode'>
-            Circle
-          </button>
-          <button onClick={onAddRectangle} className='change_mode'>
-            Rectangle
-          </button>
         </div>
-        <div className='controls_colors'>
+        <div className='controls_colors' onClick={changeColor}>
           <div
-            onClick={changeColor}
             ref={colorRef}
             className='control_color'
             style={{ backgroundColor: '#2c2c2c' }}
           ></div>
           <div
-            onClick={changeColor}
             ref={colorRef}
             className='control_color'
-            style={{ backgroundColor: 'lightgreen' }}
+            style={{ backgroundColor: 'white' }}
           ></div>
           <div
-            onClick={changeColor}
             ref={colorRef}
             className='control_color'
             style={{ backgroundColor: 'blue' }}
           ></div>
           <div
-            onClick={changeColor}
             ref={colorRef}
             className='control_color'
             style={{ backgroundColor: 'yellow' }}
           ></div>
           <div
-            onClick={changeColor}
             ref={colorRef}
             className='control_color'
             style={{ backgroundColor: 'green' }}
           ></div>
           <div
-            onClick={changeColor}
             ref={colorRef}
             className='control_color'
             style={{ backgroundColor: 'navy' }}
           ></div>
           <div
-            onClick={changeColor}
             ref={colorRef}
             className='control_color'
             style={{ backgroundColor: 'purple' }}
           ></div>
           <div
-            onClick={changeColor}
             ref={colorRef}
             className='control_color'
             style={{ backgroundColor: 'orange' }}
           ></div>
           <div
-            onClick={changeColor}
             ref={colorRef}
             className='control_color'
             style={{ backgroundColor: 'lightblue' }}
           ></div>
+          <input
+            ref={colorRef}
+            type='color'
+            value={color}
+            onChange={changColorPicker}
+            className='control_picker'
+          />
         </div>
       </div>
     </div>
